@@ -11,16 +11,22 @@ bool ClientTls::loadCA(const std::string &ca) {
 }
 
 bool ClientTls::doHandshake() {
+
 	bool res = (!ca && !loadCA()) ? false : TlsClient_doHandShake(client, -1);
 	if (!res) return false;
 
-	getHostname();
-	getIp();
-	getPort();
-	getCipher();
-	getCrt();
+	hostname = std::string(client->hsinfo->hostname);
+	ip	 = std::string(client->hsinfo->ip);
+	port	 = std::string(client->hsinfo->port);
+	cipher	 = std::string(SSL_get_cipher(client->ssl));
 
-	return true;
+	for (char *crt = X509_NAME_oneline(X509_get_subject_name(client->cert), NULL, 0); crt;) {
+		this->crt = std::string(crt);
+		free(crt);
+		return true;
+	}
+
+	return false;
 }
 
 const char * ClientTls::getError() {
@@ -31,41 +37,12 @@ ClientTls::~ClientTls() {
 	TlsClient_free(client);
 }
 
-int ClientTls::read(void *buf, int size) {
+int ClientTls::read(void *buf, int size) const {
 	return SSL_read(client->ssl, buf, size);
 }
 
 int ClientTls::write(const void *buf, int size) {
 	return SSL_write(client->ssl, buf, size);
-}
-
-std::string ClientTls::getHostname() {
-	return hostname != "" ? hostname : (hostname = std::string(client->hsinfo->hostname));
-}
-
-std::string ClientTls::getIp() {
-	return ip != "" ? ip : (ip = std::string(client->hsinfo->ip));
-}
-
-std::string ClientTls::getPort() {
-	return port != "" ? port : (port = std::string(client->hsinfo->port));
-}
-
-std::string ClientTls::getCipher() {
-	return cipher != "" ? cipher : (cipher = std::string(SSL_get_cipher(client->ssl)));
-}
-
-std::string ClientTls::getCrt() {
-
-	if (this->crt != "") return this->crt;
-
-	for (char *crt = X509_NAME_oneline(X509_get_subject_name(client->cert), NULL, 0); crt;) {
-		this->crt = std::string(crt);
-		free(crt);
-		return this->crt;
-	}
-
-	return NULL;
 }
 
 void ClientTls::skSpecialIO(const std::string &st) {

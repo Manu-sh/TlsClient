@@ -10,10 +10,11 @@ ANSI_RED="\033[31m"
 ANSI_GREEN="\033[32m"
 
 # set time format
-TIMEFORMAT=%R;
+# TIMEFORMAT=%R;
 
 trap 'echo -e "${ANSI_RESET}${ANSI_SHOW_CUR}"; exit 0' 2
 
+# simulate a matrix
 HOSTS=(
         "expired.badssl.com"          "B"
         "wrong.host.badssl.com"       "B"
@@ -35,6 +36,7 @@ pstat() {
 	[ -z $1 ] && echo "index required" && exit 2
 	[ -z $2 ] && echo "exit code required" && exit 2
 
+	# access to 2nd columns
 	if ([ $2 -ne 0 ] && [ "${HOSTS[$1+1]}" == "B" ]) || ([ $2 -eq 0 ] && [ "${HOSTS[$1+1]}" == "G" ]); then
 		return 0
 	else
@@ -52,12 +54,18 @@ echoStat() {
 	fi
 }
 
-! [ -e "./main" ] || ! [ -e "./main0" ] || ! [ "$(which curl)" ] || ! [ "$(which wget)" ] && echo "type make main{,0} and install curl and wget" && exit 2
+# check for dependencies
+for i in "wget" "curl" "ruby" "python3"; do
+	! [ -e "$(which $i 2>/dev/null)" ] && echo "$i required" && exit 2
+done
+
+! [ -e "./main" ] || ! [ -e "./main0" ] && echo "type make main{,0}" && exit 2
 
 ! $NO_ANSI_ESC && echo -e "$ANSI_HIDE_CUR"
 for ((i=0; i < ${#HOSTS[@]}; i++)); do
 
-	(($i%2)) && continue # i%2 -ne 0
+	# ignore 2nd columns here
+	(($i%2)) && continue # i%2 -eq 0
 	cur=${HOSTS[$i]}
 
 	echo "===================================================================================="

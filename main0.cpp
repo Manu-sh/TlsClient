@@ -32,6 +32,7 @@ int main(int argc, char **argv) {
 		cout << "PORT: "   << client.getPort()     << "\n";
 		cout << "CIPHER: " << client.getCipher()   << "\n";
 		cout << "CRT: "    << client.getCrt()      << "\n\n";
+
 		client.skSpecialIO("GET " HOST_RESOURCE " HTTP/1.1\r\n" "Connection: close\r\n\r\n");
 
 	} catch (const std::string &e) { 

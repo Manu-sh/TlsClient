@@ -44,9 +44,7 @@ TlsClient * TlsClient_new(const char *hostname, const char *port) {
 		return NULL;
 	}
 
-	cl->ctx = SSL_CTX_new(TLS_client_method());
-
-	if (!cl->ctx) {
+	if (!(cl->ctx = SSL_CTX_new(TLS_client_method()))) {
 		free(cl->hsinfo);
 		free(cl->errinfo);
 		free(cl);

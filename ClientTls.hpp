@@ -19,15 +19,15 @@ class ClientTls {
 		bool loadCA(const std::string &ca = CA_FILE);
 		bool doHandshake();
 		const char * getError();
-		int read(void *buf, int size);
+		int read(void *buf, int size) const;
 		int write(const void *buf, int size);
 		void skSpecialIO(const std::string &buf);
 		void printCRT();
 		int shutdown();
-		std::string getHostname();
-		std::string getIp();
-		std::string getPort();
-		std::string getCipher();
-		std::string getCrt();
+		const std::string & getHostname() const { return hostname; }
+		const std::string & getIp()	  const { return ip; }
+		const std::string & getPort()     const { return port; }
+		const std::string & getCipher()   const { return cipher; }
+		const std::string & getCrt()      const { return crt; }
 		friend std::ostream & operator<<(std::ostream &s, const ClientTls &c);
 };
