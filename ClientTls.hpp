@@ -30,4 +30,11 @@ class ClientTls {
 		const std::string & getCipher()   const { return cipher; }
 		const std::string & getCrt()      const { return crt; }
 		friend std::ostream & operator<<(std::ostream &s, const ClientTls &c);
+
+		// suppress move and copy constructor
+		ClientTls(const ClientTls &cl) = delete;
+		ClientTls(ClientTls &&cl) = delete;
+		ClientTls & operator=(const ClientTls &cl) = delete;
+		ClientTls & operator=(ClientTls &&cl) = delete;
+
 };
