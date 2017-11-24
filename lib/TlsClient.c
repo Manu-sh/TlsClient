@@ -15,6 +15,7 @@ void TlsClient_free(TlsClient *cl) {
 
 const char * TlsClient_getError(TlsClient *cl) { return cl->errinfo->ebuf; }
 
+// Initialization: this return a new Tls Client structure, or null in case of insuccess
 TlsClient * TlsClient_new(const char *hostname, const char *port) {
 
 	TlsClient *cl;
@@ -63,6 +64,8 @@ TlsClient * TlsClient_new(const char *hostname, const char *port) {
 	return cl;
 }
 
+// set CA file or folder for crt validation sent by the host, two default value CA_FILE, and CA_CERT (should be renamed)
+// are defined into TlsClient.h
 bool TlsClient_loadCA(TlsClient *cl, const char *ca) {
 
 	if (!cl || !ca || strcmp(ca, "") == 0) {
@@ -111,6 +114,7 @@ fail:
 	return FALSE;
 }
 
+// provide an existing tcp socket to use or -1
 bool TlsClient_doHandShake(TlsClient *cl, int sk) {
 
 	if ((cl->tcp_sk = sk) == -1 && !TlsClient_doTcp(cl))
