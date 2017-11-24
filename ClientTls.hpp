@@ -14,7 +14,7 @@ class ClientTls {
 		const char  *ca;
 
 	public:
-		ClientTls(const std::string &servername = "google.com", const std::string &port = "443"); // throw(std::string &); deprecated
+		ClientTls(const std::string &servername = "google.com", const std::string &port = "443");
 		~ClientTls();
 		bool loadCA(const std::string &ca = CA_FILE);
 		bool doHandshake();

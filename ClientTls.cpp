@@ -3,7 +3,7 @@
 ClientTls::ClientTls(const std::string &servername, const std::string &port) {
 	ca = NULL;
 	if (!(client = TlsClient_new(servername.c_str(), port.c_str())))
-		throw std::string("Initialization Exception: invalid arguments or memory insufficient");
+		throw std::runtime_error("Initialization Exception: invalid arguments or memory insufficient");
 }
 
 bool ClientTls::loadCA(const std::string &ca) {
