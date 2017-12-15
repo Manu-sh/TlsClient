@@ -26,22 +26,21 @@
 #define FALSE false
 #define TRUE  true
 
-typedef struct _host {
+typedef struct {
 	char hostname[HOST_NAME_MAX+1];
 	char port[PORT_MAX+1];
 	char ip[INET_ADDRSTRLEN+1];
 } HostInfo;
 
-typedef struct _errinfo {  char ebuf[EBSIZE];  } ErrInfo;
+typedef struct {  char ebuf[EBSIZE];  } ErrInfo;
 
-struct _tlsclient {
+typedef struct {
 	SSL_CTX    *ctx;
 	SSL	   *ssl;
 	X509	   *cert;
 	HostInfo   *hsinfo;
 	ErrInfo    *errinfo;
 	int	   tcp_sk;
-};
+} TlsClient;
 
-typedef struct _tlsclient TlsClient;
 extern int errno, h_errno;
