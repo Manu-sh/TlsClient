@@ -20,7 +20,7 @@ bool ClientTls::doHandshake() {
 	port	 = std::string(client->hsinfo->port);
 	cipher	 = std::string(SSL_get_cipher(client->ssl));
 
-	for (char *crt = X509_NAME_oneline(X509_get_subject_name(client->cert), NULL, 0); crt;) {
+	if (char *crt = X509_NAME_oneline(X509_get_subject_name(client->cert), NULL, 0)) {
 		this->crt = std::string(crt);
 		free(crt);
 		return true;
