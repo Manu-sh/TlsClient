@@ -1,25 +1,22 @@
 CC=cc
 CXX=g++
 
-CFLAGS=-O3 -march=native -pipe -Wall -Wno-unused-function
-CXXFLAGS=-O3 -march=native -pipe -Wall -Wno-unused-function
-LDFLAGS=-lssl -lcrypto
-LIB_PATH=lib
+CFLAGS=-O3 -pipe -Wall -Wno-unused-function
+CXXFLAGS=-O3 -pipe -Wall -Wno-unused-function
+LDFLAGS=`pkg-config --libs openssl libcrypto`
 LIBTLS=libtlscl
-AR=ar
-RM=rm -vf
 
 .PHONY: clean test
 
-$(LIBTLS).a: $(LIB_PATH)/TlsClient.c $(LIB_PATH)/TlsClient.h $(LIB_PATH)/types.h
-	$(CC)  -c $(LIB_PATH)/TlsClient.c $(CFLAGS)
-	$(AR) rcs $(LIBTLS).a TlsClient.o
+$(LIBTLS).a: lib/TlsClient.c lib/TlsClient.h lib/types.h
+	$(CC)  -c lib/TlsClient.c $(CFLAGS)
+	ar rcs $(LIBTLS).a TlsClient.o
 
 ClientTls.o: ClientTls.cpp ClientTls.hpp
 	$(CXX) -c ClientTls.cpp $(LDFLAGS) $(CXXFLAGS)
 
 clean:
-	$(RM) *.o *.a *.log main main0
+	rm -fv *.o *.a *.log main main0
 
 main0: main0.cpp ClientTls.o $(LIBTLS).a
 	$(CXX) -o main0 main0.cpp ClientTls.o $(LIBTLS).a $(LDFLAGS) $(CXXFLAGS)
