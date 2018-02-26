@@ -1,4 +1,9 @@
 #pragma once
+
+#ifndef _GNU_SOURCE
+	#define _GNU_SOURCE
+#endif
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -8,6 +13,10 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <errno.h>
+
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -16,13 +25,49 @@
 #include <openssl/err.h>
 #include <openssl/x509v3.h>
 #include <openssl/ocsp.h>
+#include <openssl/opensslv.h>
 
-#include "types.h"
+#ifndef HOST_NAME_MAX
+	#define HOST_NAME_MAX 64
+#endif
 
+#if OPENSSL_VERSION_NUMBER < 0x1010006f
+	#error "require openssl lib >= 1.1.0f"
+#endif
+
+
+#ifdef HOST_NAME_SZ
+	#error "redefinition of HOST_NAME_SZ"
+#elif defined(PORT_MAX)
+	#error "redefinition of PORT_MAX"
+#elif defined(EBSIZE)
+	#error "redefinition of EBSIZE"
+#endif
+
+#define EBSIZE 4096
+#define PORT_MAX 10
 #define CA_CERT "/etc/ssl/certs"
 #define CA_FILE "/etc/ssl/certs/ca-certificates.crt"
 
-// API
+typedef struct {
+	char hostname[HOST_NAME_MAX+1];
+	char port[PORT_MAX+1];
+	char ip[INET_ADDRSTRLEN+1];
+} HostInfo;
+
+typedef struct {  char ebuf[EBSIZE];  } ErrInfo;
+
+typedef struct {
+	SSL_CTX    *ctx;
+	SSL	   *ssl;
+	X509	   *cert;
+	HostInfo   *hsinfo;
+	ErrInfo    *errinfo;
+	int	   tcp_sk;
+} TlsClient;
+
+extern int errno, h_errno;
+
 const char * TlsClient_getError(TlsClient *cl);
 TlsClient  * TlsClient_new(const char *hostname, const char *port);
 
@@ -32,19 +77,16 @@ bool TlsClient_doHandShake(TlsClient *cl, int sk);
 
 static void seterr(TlsClient *cl, const char *fname, const char *msg) {
 
-       if (!cl || !cl->errinfo) return;
+	if (!cl || !cl->errinfo) return;
 
-       if (!fname && msg)
-               snprintf(cl->errinfo->ebuf, EBSIZE, "%s", msg);
+	if (!fname && msg)
+		snprintf(cl->errinfo->ebuf, EBSIZE, "%s", msg);
 
-       if (fname && msg)
-               snprintf(cl->errinfo->ebuf, EBSIZE, "%s %s", fname, msg);
+	if (fname && msg)
+		snprintf(cl->errinfo->ebuf, EBSIZE, "%s %s", fname, msg);
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wparentheses"
-       if (fname && !msg || !fname && !msg)
-               seterr(cl, "Internal error seterr():", "invalid arguments");
-#pragma GCC diagnostic pop
+	if ((fname && !msg) || (!fname && !msg))
+		seterr(cl, "Internal error seterr():", "invalid arguments");
 }
 
 static bool hostres(TlsClient *cl) {
@@ -61,26 +103,25 @@ static bool hostres(TlsClient *cl) {
 
 	for (int ret = getaddrinfo(cl->hsinfo->hostname, cl->hsinfo->port, &hints, &result); ret != 0;) {
 		seterr(cl, "getaddrinfo(): ", gai_strerror(ret));
-		return FALSE;
+		return false;
 	}
 
 	/* getaddrinfo() returns a list of address structures. Try each address until we successfully connect(2).
-	If socket(2) (or connect(2)) fails, we (close the socket and) try the next address. */
+	   If socket(2) (or connect(2)) fails, we (close the socket and) try the next address. */
 
 	for (rp = result; rp != NULL; rp = rp->ai_next) {
 		if (((sk = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol)) != -1) && connect(sk, rp->ai_addr, rp->ai_addrlen) != -1) {
 
-			// In memory, the struct sockaddr_in and struct sockaddr_in6 share the same beginning structure as struct sockaddr, 
-			// and you can freely cast the pointer of one type to the other without any harm, except the possible end of the universe.
-
-			// http://beej.us/guide/bgnet/output/html/multipage/sockaddr_inman.html
+			/* In memory, the struct sockaddr_in and struct sockaddr_in6 share the same beginning structure as struct sockaddr, 
+			and you can freely cast the pointer of one type to the other without any harm, except the possible end of the universe.
+			http://beej.us/guide/bgnet/output/html/multipage/sockaddr_inman.html */
 
 			struct sockaddr_in *ipv4 = (struct sockaddr_in *)rp->ai_addr;
 			strncpy(cl->hsinfo->ip, inet_ntoa(ipv4->sin_addr), INET_ADDRSTRLEN); // see note *1
 
 			close(sk);
 			freeaddrinfo(result);
-			return TRUE;	
+			return true;	
 		}
 
 		close(sk);
@@ -88,14 +129,14 @@ static bool hostres(TlsClient *cl) {
 
 
 	freeaddrinfo(result);
-	return FALSE;
+	return false;
 }
 
 static bool TlsClient_doTcp(TlsClient *cl) {
 
 	if (!hostres(cl)) {
 		seterr(cl, "hostres():", "Unknown host");
-		return FALSE;
+		return false;
 	}
 
 	struct sockaddr_in sockdata;
@@ -106,21 +147,21 @@ static bool TlsClient_doTcp(TlsClient *cl) {
 
 	if ((cl->tcp_sk = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
 		seterr(cl, "socket(): ", gai_strerror(h_errno));
-		return FALSE;
+		return false;
 	}
 
 
 	if (inet_pton(AF_INET, cl->hsinfo->ip, &sockdata.sin_addr) != 1) {
 		seterr(cl, "inet_pton(): ", strerror(errno));
-		return FALSE;
+		return false;
 	}
 
 	if (connect(cl->tcp_sk, (struct sockaddr *)&sockdata, sizeof(sockdata)) < 0) {
 		seterr(cl, "connect(): ", strerror(errno));
-		return FALSE;
+		return false;
 	}
 
-	return TRUE;
+	return true;
 }
 
 #if 0

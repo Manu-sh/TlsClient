@@ -1,28 +1,26 @@
-CC=cc
-CXX=g++
+libtlsc_rpath=lib/libtlsc
 
-CFLAGS=-O3 -pipe -Wall -Wno-unused-function
-CXXFLAGS=-O3 -pipe -Wall -Wno-unused-function
-LDLIBS=`pkg-config --libs openssl libcrypto`
-LIBTLS=libtlscl
+CFLAGS=-O3 -pipe -Wall -Wno-unused-function -pedantic
+CXXFLAGS=$(CFLAGS)
+LDLIBS=`pkg-config --libs openssl libcrypto` $(libtlsc_rpath).a
 
-.PHONY: clean test
+.PHONY: clean test all
 
-$(LIBTLS).a: lib/TlsClient.c lib/TlsClient.h lib/types.h
-	$(CC)  -c lib/TlsClient.c $(CFLAGS)
-	ar rcs $(LIBTLS).a TlsClient.o
+all: main0 main
 
-ClientTls.o: ClientTls.cpp ClientTls.hpp
-	$(CXX) -c ClientTls.cpp $(LDLIBS) $(CXXFLAGS)
+$(libtlsc_rpath).a:
+	make -C lib
+
+main0: main0.cpp ClientTls.cpp ClientTls.hpp $(libtlsc_rpath).a
+	$(CXX) -c ClientTls.cpp
+	$(CXX) -o main0 main0.cpp ClientTls.o $(LDLIBS) $(CXXFLAGS)
+
+main: main.c $(libtlsc_rpath).a
+	$(CC) -o main main.c $(LDLIBS) $(CFLAGS)
+
+test: clean test.sh main main0
+	./test.sh
 
 clean:
-	rm -fv *.o *.a *.log main main0
-
-main0: main0.cpp ClientTls.o $(LIBTLS).a
-	$(CXX) -o main0 main0.cpp ClientTls.o $(LIBTLS).a $(LDLIBS) $(CXXFLAGS)
-
-main: main.c $(LIBTLS).a
-	$(CC) -o main main.c $(LIBTLS).a $(LDLIBS) $(CFLAGS)
-
-test: clean $(LIBTLS).a test.sh main main0
-	./test.sh
+	make -C lib clean
+	rm -fv *.o *.log main main0

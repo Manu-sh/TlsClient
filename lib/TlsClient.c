@@ -15,7 +15,7 @@ void TlsClient_free(TlsClient *cl) {
 
 const char * TlsClient_getError(TlsClient *cl) { return cl->errinfo->ebuf; }
 
-// Initialization: this return a new Tls Client structure, or null in case of insuccess
+/* Initialization: this return a new Tls Client structure, or null in case of insuccess */
 TlsClient * TlsClient_new(const char *hostname, const char *port) {
 
 	TlsClient *cl;
@@ -70,7 +70,7 @@ bool TlsClient_loadCA(TlsClient *cl, const char *ca) {
 
 	if (!cl || !ca || strcmp(ca, "") == 0) {
 		seterr(cl, "TlsClient_loadCA(): ", "Invalid arguments");
-		return FALSE;
+		return false;
 	}
 
 	int fd = open(ca, O_RDONLY|O_NONBLOCK);
@@ -78,7 +78,7 @@ bool TlsClient_loadCA(TlsClient *cl, const char *ca) {
 
 	if (fd == -1) {
 		seterr(cl, "open(): ", strerror(errno));
-		return FALSE;
+		return false;
 	}
 
 	if (fstat(fd, &status) != 0) {
@@ -107,27 +107,27 @@ bool TlsClient_loadCA(TlsClient *cl, const char *ca) {
 
 
 	close(fd);
-	return TRUE;
+	return true;
 
 fail:
 	close(fd);
-	return FALSE;
+	return false;
 }
 
 // provide an existing tcp socket to use or -1
 bool TlsClient_doHandShake(TlsClient *cl, int sk) {
 
 	if ((cl->tcp_sk = sk) == -1 && !TlsClient_doTcp(cl))
-		return FALSE;
+		return false;
 
 	if (!(cl->ssl = SSL_new(cl->ctx))) {
 		seterr(cl, "SSL_new(): ", ERR_GET_STR());
-		return FALSE;
+		return false;
 	}
 
 	if (SSL_set_fd(cl->ssl, cl->tcp_sk) != 1) {
 		seterr(cl, "SSL_set_fd(): ", ERR_GET_STR());
-		return FALSE;
+		return false;
 	}
 
 	SSL_set_mode(cl->ssl, SSL_MODE_AUTO_RETRY);
@@ -135,14 +135,14 @@ bool TlsClient_doHandShake(TlsClient *cl, int sk) {
 	// SSL_connect() == SSL_set_connect_state(cl->ssl) (required for setting ssl handshake in client mode) + SSL_do_handshake()
 	if (SSL_connect(cl->ssl) != 1) {
 		seterr(cl, "SSL_connect(): ", ERR_GET_STR());
-		return FALSE;
+		return false;
 	}
 
 	if (!(cl->cert = SSL_get_peer_certificate(cl->ssl))) {
 		seterr(cl, "SSL_get_peer_certificate(): ", "no crt presented");
-		return FALSE;
+		return false;
 	}
 
-	return TRUE;
+	return true;
 
 }
