@@ -2,6 +2,8 @@
 
 #define ERR_GET_STR() ERR_reason_error_string(ERR_peek_error())
 
+#define VFY_DEPTH 10
+
 void TlsClient_free(TlsClient *cl) {
 	if (!cl) return;
 	if (cl->tcp_sk != -1) close(cl->tcp_sk);
@@ -52,11 +54,12 @@ TlsClient * TlsClient_new(const char *hostname, const char *port) {
 		return NULL;
 	}
 
-	SSL_CTX_set_verify(cl->ctx, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
-	SSL_CTX_set_verify_depth(cl->ctx, 1);
+	SSL_CTX_set_verify(cl->ctx, SSL_VERIFY_PEER, NULL);
+	SSL_CTX_set_verify_depth(cl->ctx, VFY_DEPTH);
 
 	// exclude old protocol version
-	SSL_CTX_set_options(cl->ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_COMPRESSION);
+	SSL_CTX_set_min_proto_version(cl->ctx, TLS1_VERSION);
+	SSL_CTX_set_max_proto_version(cl->ctx, TLS1_2_VERSION);
 
 	// TODO create my own callback ?
 	// SSL_CTX_set_cert_verify_callback(cl->ctx, NULL, NULL);
@@ -88,7 +91,7 @@ bool TlsClient_loadCA(TlsClient *cl, const char *ca) {
 
 	switch (status.st_mode & S_IFMT) {
 		case S_IFREG:
-			SSL_CTX_set_verify_depth(cl->ctx, 1);
+			SSL_CTX_set_verify_depth(cl->ctx, VFY_DEPTH);
 			if ((SSL_CTX_load_verify_locations(cl->ctx, ca, NULL)) != 1) {
 				seterr(cl, "SSL_CTX_load_verify_locations():", "load ca from path: failure");
 				goto fail;
