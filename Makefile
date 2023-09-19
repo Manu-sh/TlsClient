@@ -1,6 +1,6 @@
 libtlsc_rpath=lib/libtlsc
 
-CFLAGS=-O3 -pipe -Wall -Wno-unused-function -pedantic
+CFLAGS=-O3 -pipe -Wall -Wno-unused-function -pedantic #-mtune=native -march=native
 CXXFLAGS=$(CFLAGS)
 LDLIBS=`pkg-config --libs openssl libcrypto` $(libtlsc_rpath).a
 
