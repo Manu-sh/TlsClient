@@ -1,6 +1,6 @@
 # TlsClient
 A mini wrapper for openssl library
-**i keep this repo ONLY as personal code snippet and all this code should be rewritten because it sucks also to be a code snippet**
+**i keep this repo ONLY as personal code snippet**
 
 # Build
 ```bash
